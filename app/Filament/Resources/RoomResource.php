@@ -131,37 +131,50 @@ class RoomResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('unit')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('bedding')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('extra_bed')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('max_total_occupancy')
+                    ->label('Max Pax')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('max_adult_occupancy')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('max_child_occupancy')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('base_rate_occupancy')
+                    ->label('Base Pax')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('size')
                     ->numeric()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('rate_high_season')
+                    ->label('High Season')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('rate_low_season')
+                    ->label('Low Season')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('rate_peak_season')
+                    ->label('Peak Season')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('rate_shoulder_season')
+                    ->label('Shoulder Season')
                     ->numeric()
                     ->sortable(),
             ])
