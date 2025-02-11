@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\SeasonResource\Pages;
-use App\Models\Season;
+use App\Filament\Resources\MealResource\Pages;
+use App\Filament\Resources\MealResource\RelationManagers;
+use App\Models\Meal;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,9 +13,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class SeasonResource extends Resource
+class MealResource extends Resource
 {
-    protected static ?string $model = Season::class;
+    protected static ?string $model = Meal::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -24,6 +25,11 @@ class SeasonResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required(),
+                Forms\Components\TextInput::make('base_rate')
+                    ->required()
+                    ->numeric(),
+                Forms\Components\TextInput::make('promo_rate')
+                    ->numeric(),
             ]);
     }
 
@@ -33,6 +39,12 @@ class SeasonResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('base_rate')
+                    ->numeric()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('promo_rate')
+                    ->numeric()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -47,6 +59,7 @@ class SeasonResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -55,19 +68,10 @@ class SeasonResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            SeasonResource\RelationManagers\DatesRelationManager::class,
-        ];
-    }
-
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSeasons::route('/'),
-            'create' => Pages\CreateSeason::route('/create'),
-            'edit' => Pages\EditSeason::route('/{record}/edit'),
+            'index' => Pages\ManageMeals::route('/'),
         ];
     }
 }

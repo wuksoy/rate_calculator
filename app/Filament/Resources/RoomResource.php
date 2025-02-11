@@ -163,18 +163,22 @@ class RoomResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('rate_high_season')
                     ->label('High Season')
+                    ->money('USD')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('rate_low_season')
                     ->label('Low Season')
+                    ->money('USD')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('rate_peak_season')
                     ->label('Peak Season')
+                    ->money('USD')
                     ->numeric()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('rate_shoulder_season')
                     ->label('Shoulder Season')
+                    ->money('USD')
                     ->numeric()
                     ->sortable(),
             ])

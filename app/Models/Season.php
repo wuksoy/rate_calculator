@@ -18,4 +18,10 @@ class Season extends Model
     protected $fillable = [
         'name',
     ];
+
+    public function dates()
+    {
+        return $this->hasMany(SeasonDate::class);
+    }
+    
 }
