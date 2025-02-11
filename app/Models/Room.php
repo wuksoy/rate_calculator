@@ -61,4 +61,9 @@ class Room extends Model
         'rate_shoulder_season' => 'float',
     ];
 
+    public function reservations()
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
 }

@@ -20,4 +20,9 @@ class Meal extends Model
         'base_rate' => 'float',
         'promo_rate' => 'float',
     ];
+
+    public function reservations()
+    {
+        return $this->hasMany(Reservation::class);
+    }
 }
