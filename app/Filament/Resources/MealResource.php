@@ -24,13 +24,16 @@ class MealResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->required(),
+                    ->required()
+                    ->columnSpan(2),
                 Forms\Components\TextInput::make('base_rate')
+                    ->columnSpan(1)
                     ->required()
                     ->numeric(),
                 Forms\Components\TextInput::make('promo_rate')
+                    ->columnSpan(1)
                     ->numeric(),
-            ]);
+            ])->columns(2);
     }
 
     public static function table(Table $table): Table
