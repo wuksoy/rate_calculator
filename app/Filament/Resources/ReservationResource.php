@@ -154,7 +154,6 @@ class ReservationResource extends Resource
                                             ],
                                         ];
                                         
-                                        // Save as XLSX (Excel)
                                         (new SheetsService())
                                             ->generate('template2.xlsx', $data)
                                             ->saveAs('generated_document.xlsx');
