@@ -13,6 +13,10 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Actions\Action;
+use Filament\Tables\Actions\Action as TableAction;
+use Filament\Tables\Enums\ActionsPosition;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Components\Toggle;
@@ -291,8 +295,23 @@ class ReservationResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
+                //Tables\Actions\EditAction::make(),
+                TableAction::make('Generate')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->openUrlInNewTab()
+                    ->action(function(Model $record){
+                        $data = [
+                        ];
+                        
+                        $fileName = 'generated_document.xlsx';
+                        $filePath = public_path($fileName);
+                        
+                        (new SheetsService())
+                            ->generate('template2.xlsx', $data)
+                            ->saveAs($fileName);
+                        return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
+                    })
+                ], position: ActionsPosition::BeforeColumns)
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
