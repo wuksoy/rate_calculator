@@ -21,6 +21,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Forms\Components\Select;
 use AnourValar\Office\SheetsService;
+use AnourValar\Office\Format;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -103,19 +104,15 @@ class ReservationResource extends Resource
                             
                             ->searchable()
                             ->columnSpan(12),
-                        Toggle::make('adavance_discount')
-                            ->label('Advance Discount')
-                            ->columnSpan(4)
-                            ->required(),
                         TextInput::make('total_without_discount')
                             ->label('Total Without Discount')
-                            ->columnSpan(4)
+                            ->columnSpan(6)
                             ->required()
                             ->numeric()
                             ->default(0),
                         TextInput::make('discounted_amount')
                             ->label('Discounted Amount')
-                            ->columnSpan(4)
+                            ->columnSpan(6)
                             ->required()
                             ->numeric()
                             ->default(0),
@@ -127,36 +124,22 @@ class ReservationResource extends Resource
                             ->suffixActions([
                                 Action::make('generate_total')
                                     ->label('Generate Excel')
-                                    ->icon('heroicon-o-document-plus')
+                                    ->icon('heroicon-o-document-arrow-down')
                                     ->requiresConfirmation()
-                                    ->action(function (Set $set, $state) {
+                                    ->action(function (Get $get) {
                                         $data = [
-                                            'best_manager' => 'Sveta',
-                                        
-                                            // two-dimensional table
-                                            'managers' => [
-                                                'titles' => [[ 'William', 'James', 'Sveta' ]],
-                                        
-                                                'values' => [
-                                                    [ // additional row
-                                                        'month' => 'January',
-                                                        'amount' => [700, 800, 900], // additional columns
-                                                    ],
-                                                    [
-                                                        'month' => 'February',
-                                                        'amount' => [7000, 8000, 9000],
-                                                    ],
-                                                    [
-                                                        'month' => 'March',
-                                                        'amount' => [70000, 80000, 90000],
-                                                    ],
-                                                ],
-                                            ],
                                         ];
+                                        
+                                        $fileName = 'generated_document.xlsx';
+                                        $filePath = public_path($fileName);
                                         
                                         (new SheetsService())
                                             ->generate('template2.xlsx', $data)
-                                            ->saveAs('generated_document.xlsx');
+                                            ->saveAs($fileName);
+
+                                        // Return download response
+                                        return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
+
                                     })
                             ])
                             ->default(0),
@@ -206,7 +189,7 @@ class ReservationResource extends Resource
                             ->columnSpan(4)
                             ->default(false),
                         TextInput::make('room_discount')
-                            ->label('Meals Discount')
+                            ->label('Room Discount')
                             ->minValue(0)
                             ->required()
                             ->numeric()
@@ -222,6 +205,12 @@ class ReservationResource extends Resource
                             ])
                             ->columnSpan(4)
                             ->default(false),
+                        Toggle::make('adavance_discount')
+                            ->label('30 day Advance Discount')
+                            ->onColor('primary')
+                            ->offColor('danger')
+                            ->columnSpan(12)
+                            ->required(),
                         
                     ]),
             ])->columns(12);
