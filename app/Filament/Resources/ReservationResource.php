@@ -120,7 +120,7 @@ class ReservationResource extends Resource
         // Step 4: Calculate base room rate and extra charges
         $totalBaseRate = $baseRate * $numDays;
         $finalRoomPrice = $totalBaseRate - $totalRoomDiscount;
-        $extraOccupants = max(0, $numAdults - 2);
+        $extraOccupants = max(0, $numAdults - $room->base_rate_occupancy);
         $extraCharge = $extraOccupants * $extraChargePerNight * $numDays;
 
         $totalRate = $totalBaseRate + $extraCharge;
