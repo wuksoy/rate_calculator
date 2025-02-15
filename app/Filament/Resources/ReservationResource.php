@@ -198,6 +198,7 @@ class ReservationResource extends Resource
                             ->columnSpan(4)
                             ->minDate(Carbon::tomorrow())
                             ->required()
+                            ->displayFormat('d M Y')
                             ->native(false)
                             ->closeOnDateSelection()
                             ->default(Carbon::tomorrow()->toDateString())
@@ -318,8 +319,8 @@ class ReservationResource extends Resource
                                     })
                             ])
                             ->default(0),
-                        TextInput::make('APR')
-                            ->label('APR')
+                        TextInput::make('ADR')
+                            ->label('ADR')
                             ->columnSpan(6)
                             ->readOnly()
                             ->live()
@@ -337,7 +338,7 @@ class ReservationResource extends Resource
                             ->maxValue(100)
                             ->required()
                             ->numeric()
-                            ->live(onBlur: true)
+                            ->live(debounce: 500)
                             ->afterStateUpdated(fn(Get $get, Set $set) => self::calculateTotal($get, $set))
                             ->columnSpan(8)
                             ->default(0),
@@ -359,7 +360,7 @@ class ReservationResource extends Resource
                             ->maxValue(100)
                             ->required()
                             ->numeric()
-                            ->live(onBlur: true)
+                            ->live(debounce: 500)
                             ->afterStateUpdated(fn(Get $get, Set $set) => self::calculateTotal($get, $set))
                             ->columnSpan(8)
                             ->default(0),
@@ -381,7 +382,7 @@ class ReservationResource extends Resource
                             ->maxValue(100)
                             ->required()
                             ->numeric()
-                            ->live(onBlur: true)
+                            ->live(debounce: 500)
                             ->afterStateUpdated(fn(Get $get, Set $set) => self::calculateTotal($get, $set))
                             ->columnSpan(8)
                             ->default(0),
