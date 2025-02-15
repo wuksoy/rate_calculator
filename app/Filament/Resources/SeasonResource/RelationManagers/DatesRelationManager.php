@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources\SeasonResource\RelationManagers;
 
+use App\Models\Season;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -20,17 +22,13 @@ class DatesRelationManager extends RelationManager
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('season_id')
-                    ->required()
-                    ->maxLength(255),
+                Select::make('season_id')
+                    ->options(Season::all()->pluck('name', 'id'))
+                    ->columnSpan(2),
                 DatePicker::make('start_date')
-                    ->required()
-                    ->format('d/m/Y')
-                    ->maxLength(255),
+                    ->required(),
                 DatePicker::make('end_date')
-                    ->required()
-                    ->format('d/m/Y')
-                    ->maxLength(255),
+                    ->required(),
             ]);
     }
 
