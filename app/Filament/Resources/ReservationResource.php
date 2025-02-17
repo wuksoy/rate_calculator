@@ -29,6 +29,7 @@ use AnourValar\Office\SheetsService;
 use AnourValar\Office\Format;
 use Carbon\Carbon;
 use Filament\Tables\Table;
+use Filament\Forms\Components\Textarea;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -50,12 +51,13 @@ class ReservationResource extends Resource
         $daysInAdvance = floor(now()->diffInDays($checkInDate ?? now()));
 
         $roomDiscount = (float) $get('room_discount') ?? 0;
+        $roomDiscountType = $get('room_discount_type');
         $mealDiscount = (float) $get('meal_discount') ?? 0;
         $mealDiscountType = $get('meal_discount_type');
         $seaplaneDiscount = (float) $get('seaplane_discount') ?? 0;
         $seaplaneDiscountType = $get('seaplane_discount_type');
         $advanceDiscountEnabled = (bool) $get('adavance_discount');
-        $extraChargePerNight = 50;
+        $extraChargePerNight = 300;
         $seaplaneChargeAdult = 700;
         $seaplaneChargeChild = 350;
 
@@ -75,6 +77,10 @@ class ReservationResource extends Resource
             $query->whereDate('start_date', '<=', $checkInDate)
                   ->whereDate('end_date', '>=', $checkInDate);
         })->first();
+
+        //TESTING
+        $set('testing',$season->name.'
+        ');
 
         // gets season name
         $seasonName = $season?->name ?? 'Normal';
@@ -105,6 +111,10 @@ class ReservationResource extends Resource
             'Shoulder Season'  => $room->rate_shoulder_season,
         };
 
+        //TESTING
+        $set('testing',$get('testing') . 'Base Rate: ' . $baseRate .'
+        ');
+
         // Step 3: Calculate discounts
         // Days in advance
         if($daysInAdvance >= 30 && $seasonName !== 'Peak Season'){
@@ -117,22 +127,55 @@ class ReservationResource extends Resource
         $roomRateDiscount = ($baseRate * ($roomDiscount / 100) * $numDays);
         $totalRoomDiscount = $roomRateDiscount + $advanceDiscount;
 
+        //TESTING
+        $set('testing',$get('testing') . '30 Day Advance Discount: ' . $advanceDiscount .'
+        ');
+        
+        //TESTING
+        $set('testing',$get('testing') . 'Base Room Rate Discount: ' . $roomRateDiscount .'
+        ');
+        //TESTING
+        $set('testing',$get('testing') . 'Total Room Discount: ' . $totalRoomDiscount .'
+        ');
+        //TESTING
+
+        $adr = $baseRate - (($baseRate * ($roomDiscount / 100)) + ($baseRate * 0.30)) ;
+        $set('ADR',$adr);
+        $set('testing',$get('testing') . 'ADR: ' . $adr .'
+        ');
+        
         // Step 4: Calculate base room rate and extra charges
-        $totalBaseRate = $baseRate * $numDays;
-        $finalRoomPrice = $totalBaseRate - $totalRoomDiscount;
+        $totalBaseRate = max(0, $adr) * $numDays;
         $extraOccupants = max(0, $numAdults - $room->base_rate_occupancy);
         $extraCharge = $extraOccupants * $extraChargePerNight * $numDays;
-
         $totalRate = $totalBaseRate + $extraCharge;
+
+        $finalRoomPrice = $totalBaseRate - $totalRoomDiscount;
+
+        //TESTING
+        $set('testing',$get('testing') . 'Base Room x nights: ' . $totalBaseRate .'
+        ');
+        $set('testing',$get('testing') . 'Extra x nights: ' . $extraCharge .'
+        ');
+        $set('testing',$get('testing') . 'Total Room: ' . $totalRate .'
+        
+        ');
 
         // Step 5: Calculate meal plan cost
         $meal = Meal::find($get('meal_id'));
-        $mealPlanBaseRate = $meal?->base_price ?? 0;
-        $mealPlanPromoRate = $meal?->promo_price ?? 0;
-        $mealPlanRate = ($daysInAdvance >= 90) ? $mealPlanPromoRate : $mealPlanBaseRate;
-
-        $numBaseOccupants = min(2, $numAdults);
+        $mealPlanBaseRate = $meal?->base_rate ?? 0;
+        $mealPlanPromoRate = $meal?->promo_rate ?? 0;
+        $mealPlanRate = ($daysInAdvance >= 30) ? $mealPlanPromoRate : $mealPlanBaseRate;
+        $numBaseOccupants = min($room->base_rate_occupancy, $numAdults);
         $mealDiscountRate = $mealDiscount / 100;
+
+        //TESTING
+        $set('testing',$get('testing') . 'Base Occupants: ' . $numBaseOccupants .'
+        ');
+        //TESTING
+        $set('testing',$get('testing') . 'Extra Occupants: ' . $extraOccupants .'
+        
+        ');
 
         if ($mealDiscountType == false) {
             $baseMeals = ($numBaseOccupants * $mealPlanRate * (1 - $mealDiscountRate)) * $numDays;
@@ -144,6 +187,24 @@ class ReservationResource extends Resource
         }
         $totalMealCost = $baseMeals + $extraMeals;
         $totalRate += $totalMealCost;
+
+
+        //TESTING
+        $set('testing',$get('testing') . 'Meal Plan Rate: ' . $mealPlanRate .'
+        ');
+        //TESTING
+        $set('testing',$get('testing') . 'Meal Plan Type: ' . $mealDiscountType .'
+        ');
+        //TESTING
+        $set('testing',$get('testing') . 'base pax meal: ' . $baseMeals .'
+        ');
+        //TESTING
+        $set('testing',$get('testing') . 'extra pax meal: ' . $extraMeals .'
+        ');
+        //TESTING
+        $set('testing',$get('testing') . 'total meal: ' . $totalMealCost .'
+        
+        ');
 
         // Step 6: Calculate seaplane charges
         $seaplaneDiscountRate = $seaplaneDiscount / 100;
@@ -161,10 +222,32 @@ class ReservationResource extends Resource
         $seaplaneTotalCost = $seaplaneBaseCost + $seaplaneExtraCost + $seaplaneChildCost;
         $totalRate += $seaplaneTotalCost;
 
+        //TESTING
+        $set('testing',$get('testing') . 'seaplane cost base pax: ' . $seaplaneBaseCost .'
+        ');
+        //TESTING
+        $set('testing',$get('testing') . 'seaplane cost extra pax: ' . $seaplaneExtraCost .'
+        ');
+        //TESTING
+        $set('testing',$get('testing') . 'seaplane cost children: ' . $seaplaneChildCost .'
+        ');
+        //TESTING
+        $set('testing',$get('testing') . 'seaplane total: ' . $seaplaneTotalCost .'
+        
+        ');
+
         // Step 7: Calculate taxes
         $serviceCharge = ($totalMealCost + $seaplaneTotalCost) * 0.1;
         $gstCharge = ($serviceCharge + $totalMealCost + $seaplaneTotalCost) * 0.16;
         $greenTax = 6 * $numChildren * $numDays;
+
+        //TESTING
+        $set('testing',$get('testing') . 'service charge: ' . $serviceCharge .'
+        ');
+        $set('testing',$get('testing') . 'gst charge: ' . $gstCharge .'
+        ');
+        $set('testing',$get('testing') . 'green tax charge: ' . $greenTax .'
+        ');
 
         $totalRate += $serviceCharge + $gstCharge + $greenTax;
 
@@ -228,7 +311,7 @@ class ReservationResource extends Resource
                         TextInput::make('adults')
                             ->minValue(1)
                             ->label('Adults')
-                            ->default(0)
+                            ->default(1)
                             ->columnSpan(4)
                             ->required()
                             ->live()
@@ -327,6 +410,11 @@ class ReservationResource extends Resource
                             ->afterStateUpdated(fn(Get $get, Set $set) => self::calculateTotal($get, $set))
                             ->numeric()
                             ->default(0),
+
+                        Textarea::make('testing')
+                        ->readonly()
+                        ->columnSpan(12)
+                        ->rows(25)
                     ]),
                 Section::make('Discounts')
                     ->columns(12)
