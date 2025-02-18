@@ -26,6 +26,11 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Forms\Components\Select;
 use AnourValar\Office\SheetsService;
+use AnourValar\Office\DocumentService;
+use PhpOffice\PhpWord\TemplateProcessor;
+use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Element\Table as OTable;
+use PhpOffice\PhpWord\SimpleType\Jc;
 use AnourValar\Office\Format;
 use Carbon\Carbon;
 use Filament\Tables\Table;
@@ -478,7 +483,95 @@ class ReservationResource extends Resource
                                             ->saveAs($fileName);
                                         return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
 
-                                    })
+                                    }),
+                                Action::make('generate_itinerary')
+                                ->label('Generate Itinerary')
+                                ->icon('heroicon-o-document-arrow-up')
+                                ->requiresConfirmation()
+                                ->action(function(Get $get){
+                                    $data = [
+                                        'guest_name'=>' Mr. Mohamed Wishan',
+                                        'dates' => '10 to 15 July 2025',
+                                        'meal_plan' =>'All Inclusive',
+                                        'itinerary'=>[
+                                            'date'=>'10th July 2025',
+                                            'details' =>[
+                                                [
+                                                    'time'=>'2:00 pm to 3:00 pm',
+                                                    'main'=>'main text goes here',
+                                                    'sub' =>'sub text goes here',
+                                                ],
+                                                [
+                                                    'time'=>'4:00 pm to 5:00 pm',
+                                                    'main'=>'22 main text goes here',
+                                                    'sub' =>'22 sub text goes here',
+                                                ],
+                                                [
+                                                    'time'=>'5:00 pm to 6:00 pm',
+                                                    'main'=>' 33 main text goes here',
+                                                    'sub' =>' 33 sub text goes here',
+                                                ],
+                                            ],
+                                        ],
+                                    ];
+
+
+                                    $fileName = 'generated_document.docx';
+                                    $filePath = public_path($fileName);
+                                    (new DocumentService())
+                                        ->generate('Itinerary.docx', $data)
+                                        ->saveAs($fileName);
+
+                                    $values = [
+                                        ['dates' =>'TUESDAY, 28 JANUARY 2025', 'time'=>'2:00 pm to 3:00 pm', 'main'=>'main text goes here', 'sub' =>'sub text goes here'],
+                                        ['dates' =>'WEDNESDAY, 29 JANUARY 2025', 'time'=>'4:00 pm to 5:00 pm', 'main'=>'22 main text goes here', 'sub' =>'22 sub text goes here'],
+                                        ['dates' =>'THURSDAY, 30 JANUARY 2025', 'time'=>'5:00 pm to 6:00 pm', 'main'=>'33 main text goes here', 'sub' =>'33 sub text goes here'],
+                                    ];
+
+                                    $phpWord = new PhpWord();
+                                    $section = $phpWord->addSection([
+                                        'marginLeft'   => 2540, // 2.54 cm
+
+                                    ]);
+
+                                    $tableWidth = 11906;
+                                    $timeWidth = 2508;  // 1.96 cm = 1108 twips
+                                    $mainWidth = 6490; 
+
+                                    $table = new OTable([
+                                        'alignment' => Jc::START,
+                                    ]);
+                                    $templateProcessor = new TemplateProcessor($filePath);
+                                    $textColor = '#595959';
+
+                                    foreach ($values as $data) {
+                                        // Add a row for the date (full width)
+                                        $table->addRow();
+                                        $cell = $table->addCell($tableWidth, ['gridSpan' => 2]); // Span across both columns
+                                        $cell->addText($data['dates'], ['bold' => false, 'color' => $textColor], ['alignment' => Jc::START]);
+                                    
+                                        // Add a row for time and main text
+                                        $table->addRow();
+                                        $table->addCell($timeWidth)->addText($data['time'], ['color' => $textColor], ['alignment' => Jc::START]);
+                                    
+                                        // Create a single cell with both Main and Sub text, properly aligned
+                                        $cell = $table->addCell($mainWidth);
+                                        $textRun = $cell->addTextRun(['alignment' => Jc::START]); // Ensure left alignment
+                                        $textRun->addText($data['main'], ['color' => $textColor]); // Main text (normal)
+                                        $textRun->addText("
+                                        "); // New line
+                                        $textRun->addText("    " . $data['sub'], ['italic' => true, 'color' => $textColor]); // Indented Sub text (italic)
+                                    }
+
+                                    // Insert the dynamically created table into the document
+                                    $templateProcessor->setComplexBlock('table_placeholder', $table);
+
+                                    $qfileName = 'final_document.docx';
+                                    $qfilePath = public_path($qfileName);
+                                    $templateProcessor->saveAs($qfilePath);
+
+                                    return response()->download($qfilePath, $qfileName)->deleteFileAfterSend(true);
+                                }),
                             ])
                             ->default(0),
                         TextInput::make('ADR')
