@@ -256,6 +256,38 @@ class ReservationResource extends Resource
 
     }
 
+    public static function generate(Get $get)
+    {
+        $room = Room::find($get('room_id'));
+        $meal = Meal::find($get('meal_id'));
+        $checkInDate = Carbon::parse($get('check_in'));
+        $checkOutDate = Carbon::parse($get('checkout'));
+
+        $data = [
+            'meal' => $meal?->name ?? '',
+            'occupants' => $get('adults') . ' Adults + ' . $get('children') . ' Children',
+            'checkin' => $checkInDate->format('d M Y'),
+            'checkout' => $checkOutDate->format('d M Y'),
+            'nights' => $get('nights'),
+            'room' => [
+                [
+                    'details' => $room?->name ?? '',
+                    'room_rate' => $room?->rate_high_season ?? 0, // Assuming high season rate for example
+                    'room_total' => $get('total_without_discount'),
+                ],
+            ],
+        ];
+
+        $fileName = 'generated_document.xlsx';
+        $filePath = public_path($fileName);
+
+        (new SheetsService())
+            ->generate('template2.xlsx', $data)
+            ->saveAs($fileName);
+
+        return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -388,14 +420,61 @@ class ReservationResource extends Resource
                                     ->icon('heroicon-o-document-arrow-down')
                                     ->requiresConfirmation()
                                     ->action(function (Get $get) {
+                                        $room = Room::find($get('room_id'));
+                                        $meal = Meal::find($get('meal_id'));
+                                        $checkInDate = Carbon::parse($get('check_in'));
+                                        $checkOutDate = Carbon::parse($get('checkout'));
+
                                         $data = [
+                                            'meal_name' => $meal?->name ?? '',
+                                            'occupants' => $get('adults') . ' Adults + ' . $get('children') . ' Children',
+                                            'checkin' => $checkInDate->format('j M y'),
+                                            'checkout' => $checkOutDate->format('j M y'),
+                                            'nights' => $get('nights'),
+                                            'all_total' =>25000,
+
+                                            'room' =>[
+                                                'row' => [
+                                                    'number' => 1,
+                                                    'details' => 'Sunset Overwater Pool Villa',
+                                                    'room_rate' => 2000,
+                                                    'room_total' =>5000,
+                                                ],
+                                            ],
+
+                                            'discount' =>[
+                                                'percentage' => 30,
+                                                'total' => 1200,
+                                            ],
+
+                                            'meal' => [
+                                                'pax' => 2,
+                                                'details' => 'Half Board',
+                                                'rate' => 250,
+                                                'amount' => 1212,
+                                            ],
+
+                                            'extra' => [
+                                                'pax' => 2,
+                                                'details' => '2 Extra Adults',
+                                                'rate' => 333,
+                                                'amount' => 3434,
+                                            ],
+
+                                            'seaplane' => [
+                                                'pax' => 2,
+                                                'details' => 'return seaplane transfer',
+                                                'rate' => 444,
+                                                'amount' => 4545,
+                                            ],
                                         ];
+
                                         
                                         $fileName = 'generated_document.xlsx';
                                         $filePath = public_path($fileName);
                                         
                                         (new SheetsService())
-                                            ->generate('template2.xlsx', $data)
+                                            ->generate('template.xlsx', $data)
                                             ->saveAs($fileName);
                                         return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
 
