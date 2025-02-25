@@ -45,9 +45,9 @@ class ReservationResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     private static function generate(Get $get){
-
         // get room
         $room = Room::find($get('room_id'));
+        $meal = Meal::find($get('meal_id'));
         $nights = (int) $get('nights') ?? 0;
         $total=0;
 
@@ -61,8 +61,7 @@ class ReservationResource extends Resource
         // get season
         $checkInDate = $get('check_in');
         $season = Season::whereHas('dates', function ($query) use ($checkInDate) {
-            $query->whereDate('start_date', '<=', $checkInDate)
-                  ->whereDate('end_date', '>=', $checkInDate);
+            $query->whereDate('start_date', '<=', $checkInDate)->whereDate('end_date', '>=', $checkInDate);
         })->first();
 
         // base room price
@@ -89,7 +88,7 @@ class ReservationResource extends Resource
         $data=[
             'meal_name' => $meal?->name ?? '',
             'occupants' => $occupants,
-            'checkin' => $checkInDate->format('j M y'),
+            'checkin' => $checkInDateTxt->format('j M y'),
             'checkout' => $checkOutDate->format('j M y'),
             'nights' => $nights,
 
@@ -111,10 +110,8 @@ class ReservationResource extends Resource
         }
 
         // Get meal details
-        $meal = Meal::find($get('meal_id'));
         $mealPlanRate = $advanceDiscount > 0 ? $meal?->promo_rate : $meal?->base_rate;
         $mealDiscountRate = (float) ($get('meal_discount') ?? 0) / 100;
-
         // Calculate meal charges for base occupants
         $mealRate = $mealPlanRate * (1 - $mealDiscountRate);
         $baseAmount = $mealRate * $nights * $baseOccupants;
@@ -124,7 +121,6 @@ class ReservationResource extends Resource
             'rate' => $mealRate,
             'amount' => $baseAmount,
         ];
-
         // Calculate meal charges for extra occupants, if applicable
         if ($extra > 0) {
             $mealDiscountType = $get('meal_discount_type');
@@ -142,24 +138,69 @@ class ReservationResource extends Resource
         if($extra>0){
             $data['extra'] = [
                 'pax' => $extra,
-                'details' => $extra . ' Extra Adults',
+                'details' => 'Extra Person Supplement - '.$extra.' Adults',
                 'rate' => 300,
                 'amount' => 300*$nights,
             ];
         }
 
         // calculate the seaplane charges
-            // adult seaplane
-            // child seaplane
+        $adultSeaplane = 300;
+        $childSeaplane = 150;
+        $seaplaneDiscount = (float) $get('seaplane_discount') ?? 0;
+        $seaplaneDiscountType = $get('seaplane_discount_type');
+        // adult seaplane
+        $data['seaplane'][]=[
+            'pax' => $baseOccupants,
+            'details' => 'Return shared seaplane transfer - '. $baseOccupants .' Adult '.($seaplaneDiscount > 0 ? '( ' . $seaplaneDiscount . '% Discount )' : ''),
+            'rate' => $adultSeaplane*(1-$seaplaneDiscount/100),
+            'amount' => $adults*$adultSeaplane*(1-$seaplaneDiscount/100),
+        ];
+        //extra seaplane
+        if($extra>0){
+            $data['seaplane'][]=[
+                'pax' => $extra,
+                'details' => 'Return shared seaplane transfer - '. $extra .' Extra Adult '.($seaplaneDiscount > 0 && $seaplaneDiscountType==true? '( ' . $seaplaneDiscount . '% Discount )' : ''),
+                'rate' => $seaplaneDiscountType? $adultSeaplane*(1-$seaplaneDiscount/100):$adultSeaplane,
+                'amount' => $extra * $seaplaneDiscountType? $adultSeaplane*(1-$seaplaneDiscount/100):$extra * $adultSeaplane,
+            ];
+        }
+        //child seaplane
+        if($children>0) {
+            $data['seaplane'][]=[
+                'pax' => $adults,
+                'details' => 'Return shared seaplane transfer - '. $children .' Children ' .($seaplaneDiscount > 0 && $seaplaneDiscountType==true? '( ' . $seaplaneDiscount . '% Discount )' : ''),
+                'rate' => $children * $seaplaneDiscountType? $childSeaplane*(1-$seaplaneDiscount/100):$children * $childSeaplane,
+                'amount' => $children * $seaplaneDiscountType? $childSeaplane*(1-$seaplaneDiscount/100):$children * $childSeaplane,
+            ];
+        }
 
         //calculate the tax charges
-            // gst
-            //green tax
-        
+        //service charge
+        $data['tax'][]=[
+            'pax' => $children,
+            'details' => '10& Service Charge ',
+            'rate' => 6,
+            'amount' => 1,
+        ];
+        // gst
+        $data['tax'][]=[
+            'pax' => $adults,
+            'details' => '16% GST Tax ',
+            'rate' => 1,
+            'amount' =>1,
+        ];
+        //green tax for children only
+        $greenTax = 6 * $children * $nights;
+        if($children > 0){
+            $data['tax'][]=[
+                'pax' => $children,
+                'details' => 'Green Tax per person per day - '. $children .' Children ',
+                'rate' => 6,
+                'amount' => $greenTax,
+            ];
+        }
         // calculate the total
-        
-
-
         // return the  data array
 
         $data['all_total'] = $total;
@@ -446,19 +487,19 @@ class ReservationResource extends Resource
                                 ->pluck('name', 'id');
                             })
                             ->afterStateUpdated(function (Get $get, Set $set, $state){
-                                // Get Current Values
                                 $room = Room::find($state);
                                 $adults = $get('adults')?? 0;
                                 $children = $get('children')?? 0;
                                 $total = $adults + $children;
 
-                                if ($room && ($room->max_adult_occupancy < $adults || $room->max_child_occupancy < $children || $room->max_total_occupancy < $total)) {
-                                    $set('room_id', null);
-                                }
+                                if ($room 
+                                    && ($room->max_adult_occupancy < $adults 
+                                    || $room->max_child_occupancy < $children 
+                                    || $room->max_total_occupancy < $total)) 
+                                { $set('room_id', null);}
 
                                 self::calculateTotal($get, $set);
                             })
-                            
                             ->searchable()
                             ->columnSpan(12),
                         TextInput::make('total_without_discount')
@@ -483,6 +524,8 @@ class ReservationResource extends Resource
                             ->required()
                             ->numeric()
                             ->live()
+                            ->readOnly()
+                            ->default(0)
                             ->afterStateUpdated(fn(Get $get, Set $set) => self::calculateTotal($get, $set))
                             ->suffixActions([
                                 Action::make('generate_total')
@@ -490,144 +533,7 @@ class ReservationResource extends Resource
                                     ->icon('heroicon-o-document-arrow-down')
                                     ->requiresConfirmation()
                                     ->action(function (Get $get) {
-                                        $roomId = $get('room_id');
-                                        $room = Room::find($roomId);
-                                        $checkInDate = $get('check_in');
-                                        $numDays = (int) $get('nights') ?? 0;
-                                        $numAdults = (int) $get('adults') ?? 0;
-                                        $numChildren = (int) $get('children') ?? 0;
-                                        $daysInAdvance = floor(now()->diffInDays($checkInDate ?? now()));
-                                        $roomDiscount = (float) $get('room_discount') ?? 0;
-                                        $roomDiscountType = $get('room_discount_type');
-                                        $mealDiscount = (float) $get('meal_discount') ?? 0;
-                                        $mealDiscountType = $get('meal_discount_type');
-                                        $seaplaneDiscount = (float) $get('seaplane_discount') ?? 0;
-                                        $seaplaneDiscountType = $get('seaplane_discount_type');
-                                        $advanceDiscountEnabled = (bool) $get('adavance_discount');
-                                        $extraChargePerNight = 300;
-                                        $seaplaneChargeAdult = 700;
-                                        $seaplaneChargeChild = 350;
-
-                                        //Step 1: Determine the Season based on check-in date
-                                        $season = Season::whereHas('dates', function ($query) use ($checkInDate) {
-                                            $query->whereDate('start_date', '<=', $checkInDate)
-                                                ->whereDate('end_date', '>=', $checkInDate);
-                                        })->first();
-                                        $seasonName = $season?->name ?? 'Normal';
-                                        $carbon_date =Carbon::parse($checkInDate);
-                                        $checkOutDate = $carbon_date->addDays($numDays);
-
-                                        $room = Room::find($get('room_id'));
-                                        $meal = Meal::find($get('meal_id'));
-                                        $occupants = $get('adults') . ' Adults' . ($get('children') > 0 ? ' + ' . $get('children') . ' Children' : '');
-                                        $checkInDate = Carbon::parse($get('check_in'));
-                                        $checkOutDate = Carbon::parse($get('checkout'));
-                                        $nights =$get('nights');
-                                        $baseRate = match ($seasonName) {
-                                            'High Season' => $room->rate_high_season,
-                                            'Peak Season' => $room->rate_peak_season,
-                                            'Low Season'  => $room->rate_low_season,
-                                            'Shoulder Season'  => $room->rate_shoulder_season,
-                                        };
-                                        if($daysInAdvance >= 30 && $seasonName !== 'Peak Season'){
-                                            $advanceDiscount = $baseRate * 0.30 * $numDays;
-                                            $adr_30 =30;
-                                        }
-                                        else {
-                                            $advanceDiscount = 0;
-                                            $adr_30 =0;
-                                        }
-
-                                        $roomRateDiscount = ($baseRate * ($roomDiscount / 100) * $numDays);
-                                        $totalRoomDiscount = min($baseRate*$numDays,$roomRateDiscount + $advanceDiscount);
-                                        $totalBaseAmount =$baseRate *$numDays;
-                                        $totalDiscountPercentage=min(100,100-((($totalBaseAmount-$totalRoomDiscount)/$totalBaseAmount)*100));
-                                        $adr = $baseRate - (($baseRate * ($roomDiscount + $adr_30 / 100)) + ($baseRate * 0.30)) ;
-
-                                        $totalBaseRate = max(0, $adr) * $numDays;
-                                        $extraOccupants = max(0, $numAdults - $room->base_rate_occupancy);
-                                        $extraCharge = $extraOccupants * $extraChargePerNight * $numDays;
-                                        $totalRate = $totalBaseRate + $extraCharge;
-                                        $finalRoomPrice = $totalBaseRate - $totalRoomDiscount;
-
-                                        // Step 5: Calculate meal plan cost
-                                        $meal = Meal::find($get('meal_id'));
-                                        $mealPlanBaseRate = $meal?->base_rate ?? 0;
-                                        $mealPlanPromoRate = $meal?->promo_rate ?? 0;
-                                        $mealPlanRate = ($daysInAdvance >= 30) ? $mealPlanPromoRate : $mealPlanBaseRate;
-                                        $numBaseOccupants = min($room->base_rate_occupancy, $numAdults);
-                                        $mealDiscountRate = $mealDiscount / 100;
-
-                                        if ($mealDiscountType == false) {
-                                            $baseMeals = ($numBaseOccupants * $mealPlanRate * (1 - $mealDiscountRate)) * $numDays;
-                                            $extraMeals = ($extraOccupants * $mealPlanBaseRate) * $numDays;
-                                        } else {
-                                            $extraMealRate = $mealPlanBaseRate * (1 - $mealDiscountRate);
-                                            $baseMeals = ($numBaseOccupants * $mealPlanRate * (1 - $mealDiscountRate)) * $numDays;
-                                            $extraMeals = ($extraOccupants * $extraMealRate) * $numDays;
-                                        }
-                                        $totalMealCost = $baseMeals + $extraMeals;
-                                        $totalRate += $totalMealCost;
-
-                                        $mealBasePax = min($room->max_adult_occupancy, $numAdults);
-                                        $mealRate = $advanceDiscount>0? $meal->promo_rate:$meal->base_rate;
-                                        $data = [
-                                            'meal_name' => $meal?->name ?? '',
-                                            'occupants' => $occupants,
-                                            'checkin' => $checkInDate->format('j M y'),
-                                            'checkout' => $checkOutDate->format('j M y'),
-                                            'nights' => $nights,
-                                            'all_total' =>25000,
-                                                
-                                            'room' =>[
-                                                'row' => [
-                                                    'number' => 1,
-                                                    'details' => $room->name,
-                                                    'room_rate' => $baseRate,
-                                                    'room_total' =>$baseRate*$nights,
-                                                ],
-                                            ],
-
-
-                                            'meal' => [
-                                                'pax' => $numBaseOccupants,
-                                                'details' => $meal->name,
-                                                'rate' => ($mealPlanRate * (1 - $mealDiscountRate)),
-                                                'amount' => $baseMeals,
-                                            ],
-
-                                            'seaplane' => [
-                                                [
-                                                    'pax' => $numAdults,
-                                                    'details' => 'Return shared seaplane transfer - '. $numAdults .' Adult ',
-                                                    'rate' => 111,
-                                                    'amount' => 1000,
-                                                ],
-                                                ['
-                                                    pax' => $numChildren,
-                                                    'details' => 'Return shared seaplane transfer - '. $numChildren.' Child ',
-                                                    'rate' => 222,
-                                                    'amount' => 2000,
-                                                ],
-                                            ],
-                                        ];
-
-                                        if($totalRoomDiscount>0){
-                                            $data['discount'] = [
-                                                "percentage" => $totalDiscountPercentage,
-                                                "total" => -$totalRoomDiscount
-                                            ];
-                                        }
-
-                                        if($extraOccupants>0){
-                                            $data['extra'] = [
-                                                'pax' => $extraOccupants,
-                                                'details' => $extraOccupants. ' Extra Adults',
-                                                'rate' => $extraChargePerNight,
-                                                'amount' => $extraChargePerNight,
-                                            ];
-                                        }
-                                        
+                                        $data = self::generate($get);
                                         $fileName = 'generated_document.xlsx';
                                         $filePath = public_path($fileName);
                                         
@@ -726,8 +632,7 @@ class ReservationResource extends Resource
 
                                     return response()->download($qfilePath, $qfileName)->deleteFileAfterSend(true);
                                 }),
-                            ])
-                            ->default(0),
+                            ]),
                         TextInput::make('ADR')
                             ->label('ADR')
                             ->columnSpan(6)
@@ -736,11 +641,10 @@ class ReservationResource extends Resource
                             ->afterStateUpdated(fn(Get $get, Set $set) => self::calculateTotal($get, $set))
                             ->numeric()
                             ->default(0),
-
                         Textarea::make('testing')
-                        ->readonly()
-                        ->columnSpan(12)
-                        ->rows(25)
+                            ->readonly()
+                            ->columnSpan(12)
+                            ->rows(25)
                     ]),
                 Section::make('Discounts')
                     ->columns(12)
@@ -762,10 +666,7 @@ class ReservationResource extends Resource
                             ->inline()
                             ->live()
                             ->afterStateUpdated(fn(Get $get, Set $set) => self::calculateTotal($get, $set))
-                            ->options([
-                                false => 'base',
-                                true => 'all' ,
-                            ])
+                            ->options([false => 'base',true => 'all' ,])
                             ->columnSpan(4)
                             ->default(false),
                         TextInput::make('meal_discount')
@@ -784,10 +685,7 @@ class ReservationResource extends Resource
                             ->inline()
                             ->live()
                             ->afterStateUpdated(fn(Get $get, Set $set) => self::calculateTotal($get, $set))
-                            ->options([
-                                false => 'base',
-                                true => 'all' ,
-                            ])
+                            ->options([false => 'base',true => 'all' ,])
                             ->columnSpan(4)
                             ->default(false),
                         TextInput::make('room_discount')
@@ -806,10 +704,7 @@ class ReservationResource extends Resource
                             ->inline()
                             ->live()
                             ->afterStateUpdated(fn(Get $get, Set $set) => self::calculateTotal($get, $set))
-                            ->options([
-                                false => 'base',
-                                true => 'all' ,
-                            ])
+                            ->options([false => 'base',true => 'all' ,])
                             ->columnSpan(4)
                             ->default(false),
                         Toggle::make('adavance_discount')
@@ -897,10 +792,8 @@ class ReservationResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
             ])
             ->actions([
-
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -912,7 +805,6 @@ class ReservationResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
         ];
     }
 
