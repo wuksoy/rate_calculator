@@ -115,9 +115,10 @@ class ReservationResource extends Resource
         // Calculate meal charges for base occupants
         $mealRate = $mealPlanRate * (1 - $mealDiscountRate);
         $baseAmount = $mealRate * $nights * $baseOccupants;
+        $mealDetails = $advanceDiscount > 0 ?'Complimentary '. $meal->name: $meal->name ;
         $data['meal'][] = [
             'pax' => $baseOccupants,
-            'details' => $meal->name,
+            'details' => $mealDetails,
             'rate' => $mealRate,
             'amount' => $baseAmount,
         ];
@@ -179,7 +180,7 @@ class ReservationResource extends Resource
         //service charge
         $data['tax'][]=[
             'pax' => $children,
-            'details' => '10& Service Charge ',
+            'details' => '10% Service Charge ',
             'rate' => 6,
             'amount' => 1,
         ];
@@ -200,11 +201,6 @@ class ReservationResource extends Resource
                 'amount' => $greenTax,
             ];
         }
-        // calculate the total
-        // return the  data array
-
-        $data['all_total'] = $total;
-
         return $data;
     }
 
