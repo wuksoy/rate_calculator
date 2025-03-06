@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\SeasonResource\Pages;
-use App\Models\Season;
+use App\Filament\Resources\ActivityTypeResource\Pages;
+use App\Filament\Resources\ActivityTypeResource\RelationManagers;
+use App\Models\ActivityType;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,14 +13,14 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class SeasonResource extends Resource
+class ActivityTypeResource extends Resource
 {
-    protected static ?string $model = Season::class;
+    protected static ?string $model = ActivityType::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationParentItem = 'Reservations';
-    protected static ?string $navigationGroup = 'Rate Calculation';
-    protected static ?int $navigationSort = 4;
+    protected static ?string $navigationParentItem = 'Activities';
+    protected static ?string $navigationGroup = 'Itinerary';
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationBadge(): ?string
     {
@@ -55,6 +56,7 @@ class SeasonResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -63,19 +65,10 @@ class SeasonResource extends Resource
             ]);
     }
 
-    public static function getRelations(): array
-    {
-        return [
-            SeasonResource\RelationManagers\DatesRelationManager::class,
-        ];
-    }
-
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSeasons::route('/'),
-            'create' => Pages\CreateSeason::route('/create'),
-            'edit' => Pages\EditSeason::route('/{record}/edit'),
+            'index' => Pages\ManageActivityTypes::route('/'),
         ];
     }
 }
