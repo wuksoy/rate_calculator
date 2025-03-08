@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('itineraries', function (Blueprint $table) {
             $table->id();
+            $table->string('guest_name');
+            $table->integer('meal_plan');
+            $table->date('checkin');
+            $table->date('checkout');
+            $table->json('activities');
             $table->timestamps();
         });
     }

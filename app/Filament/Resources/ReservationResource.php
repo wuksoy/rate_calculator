@@ -548,83 +548,82 @@ class ReservationResource extends Resource
 
                                     }),
                                 Action::make('generate_itinerary')
-                                ->hidden()
                                 ->label('Generate Itinerary')
                                 ->icon('heroicon-o-document-arrow-up')
                                 ->requiresConfirmation()
                                 ->action(function(Get $get){
+                                    // main template data
                                     $data = [
                                         'guest_name'=>' Mr. Mohamed Wishan',
                                         'dates' => '10 to 15 July 2025',
                                         'meal_plan' =>'All Inclusive',
-                                        'itinerary'=>[
-                                            'date'=>'10th July 2025',
-                                            'details' =>[
+                                    ];
+
+                                    // generate base docx with main data
+                                    $fileName = 'generated_document.docx';
+                                    $filePath = public_path($fileName);
+                                    (new DocumentService())->generate('Itinerary.docx', $data)->saveAs($fileName);
+
+                                    // table variables
+                                    $textColor = '#595959';
+                                    $tableWidth = 11906;
+                                    $timeWidth = 2508;
+                                    $mainWidth = 6490;
+                                    $table = new OTable(['alignment' => Jc::START,]);
+                                    $templateProcessor = new TemplateProcessor($filePath);
+
+                                    $table_data = [
+                                        [
+                                            'date'=>'TUESDAY, 28 JANUARY 2025',
+                                            'activities'=>[
+                                                [
+                                                    'time'=>'10:00 am to 11:00 am',
+                                                    'main'=>'Breakfast at the Pool',
+                                                    'sub' =>'something about the pool. Cool stuff auto generated right here'
+                                                ],
                                                 [
                                                     'time'=>'2:00 pm to 3:00 pm',
-                                                    'main'=>'main text goes here',
-                                                    'sub' =>'sub text goes here',
+                                                    'main'=>'Afternoon Lunch',
+                                                    'sub' =>'Have lunch at the Lighthouse, beat the trials of Osiris something something'
+                                                ],
+                                            ]
+                                        ],
+                                        [
+                                            'date'=>'WEDNESDAY, 29 JANUARY 2025',
+                                            'activities'=>[
+                                                [
+                                                    'time'=>'10:00 am to 11:00 am',
+                                                    'main'=>'MORE Breakfast at the Pool',
+                                                    'sub' =>'something about the pool. Cool stuff auto generated right here'
                                                 ],
                                                 [
-                                                    'time'=>'4:00 pm to 5:00 pm',
-                                                    'main'=>'22 main text goes here',
-                                                    'sub' =>'22 sub text goes here',
+                                                    'time'=>'2:00 pm to 3:00 pm',
+                                                    'main'=>'Sunset Yatch Cruise',
+                                                    'sub' =>'heres the thing that we all wanna know. How does this thing cost'
                                                 ],
-                                                [
-                                                    'time'=>'5:00 pm to 6:00 pm',
-                                                    'main'=>' 33 main text goes here',
-                                                    'sub' =>' 33 sub text goes here',
-                                                ],
-                                            ],
+                                            ]
                                         ],
                                     ];
 
-
-                                    $fileName = 'generated_document.docx';
-                                    $filePath = public_path($fileName);
-                                    (new DocumentService())
-                                        ->generate('Itinerary.docx', $data)
-                                        ->saveAs($fileName);
-
-                                    $values = [
-                                        ['dates' =>'TUESDAY, 28 JANUARY 2025', 'time'=>'2:00 pm to 3:00 pm', 'main'=>'main text goes here', 'sub' =>'sub text goes here'],
-                                        ['dates' =>'WEDNESDAY, 29 JANUARY 2025', 'time'=>'4:00 pm to 5:00 pm', 'main'=>'22 main text goes here', 'sub' =>'22 sub text goes here'],
-                                        ['dates' =>'THURSDAY, 30 JANUARY 2025', 'time'=>'5:00 pm to 6:00 pm', 'main'=>'33 main text goes here', 'sub' =>'33 sub text goes here'],
-                                    ];
-
-                                    $phpWord = new PhpWord();
-                                    $section = $phpWord->addSection([
-                                        'marginLeft'   => 2540, // 2.54 cm
-
-                                    ]);
-
-                                    $tableWidth = 11906;
-                                    $timeWidth = 2508;  // 1.96 cm = 1108 twips
-                                    $mainWidth = 6490; 
-
-                                    $table = new OTable([
-                                        'alignment' => Jc::START,
-                                    ]);
-                                    $templateProcessor = new TemplateProcessor($filePath);
-                                    $textColor = '#595959';
-
-                                    foreach ($values as $data) {
+                                    foreach($table_data as $data){
                                         // Add a row for the date (full width)
                                         $table->addRow();
                                         $cell = $table->addCell($tableWidth, ['gridSpan' => 2]); // Span across both columns
-                                        $cell->addText($data['dates'], ['bold' => false, 'color' => $textColor], ['alignment' => Jc::START]);
-                                    
-                                        // Add a row for time and main text
-                                        $table->addRow();
-                                        $table->addCell($timeWidth)->addText($data['time'], ['color' => $textColor], ['alignment' => Jc::START]);
-                                    
-                                        // Create a single cell with both Main and Sub text, properly aligned
-                                        $cell = $table->addCell($mainWidth);
-                                        $textRun = $cell->addTextRun(['alignment' => Jc::START]); // Ensure left alignment
-                                        $textRun->addText($data['main'], ['color' => $textColor]); // Main text (normal)
-                                        $textRun->addText("
-                                        "); // New line
-                                        $textRun->addText("    " . $data['sub'], ['italic' => true, 'color' => $textColor]); // Indented Sub text (italic)
+                                        $cell->addText($data['date'], ['bold' => false, 'color' => $textColor], ['alignment' => Jc::START]);
+
+                                        // list of activities for the day
+                                        foreach($data['activities'] as $activity){
+                                            // time slot
+                                            $table->addRow();
+                                            $table->addCell($timeWidth)->addText($activity['time'], ['color' => $textColor], ['alignment' => Jc::START]);
+
+                                            // main text and sub text
+                                            $cell = $table->addCell($mainWidth);
+                                            $textRun = $cell->addTextRun(['alignment' => Jc::START]);
+                                            $textRun->addText($activity['main'], ['color' => $textColor]);
+                                            $textRun->addTextBreak(); // New line
+                                            $textRun->addText("         " . $activity['sub'], ['italic' => true, 'color' => $textColor]);
+                                        }
                                     }
 
                                     // Insert the dynamically created table into the document
@@ -633,6 +632,7 @@ class ReservationResource extends Resource
                                     $qfileName = 'final_document.docx';
                                     $qfilePath = public_path($qfileName);
                                     $templateProcessor->saveAs($qfilePath);
+                                    file_exists($filePath) && unlink($filePath);
 
                                     return response()->download($qfilePath, $qfileName)->deleteFileAfterSend(true);
                                 }),

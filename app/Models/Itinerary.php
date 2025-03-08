@@ -11,11 +11,17 @@ class Itinerary extends Model
     use HasFactory;
 
     protected $fillable =[
-        'name',
+        'guest_name',
+        'meal_plan',
+        'checkin',
+        'checkout',
         'activities',
     ];
 
     protected $casts = [
+        'checkin' => 'date',
+        'checkout' => 'date',
+        'meal_plan' => 'integer',
         'activities' => 'array',
     ];
 }

@@ -18,5 +18,6 @@ class DatabaseSeeder extends Seeder
         $this->call(SeasonDateSeeder::class);
         $this->call(MealsSeeder::class);
         $this->call(ActivityTypeSeeder::class);
+        $this->call(ActivitySeeder::class);
     }
 }
