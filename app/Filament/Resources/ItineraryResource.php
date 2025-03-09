@@ -134,6 +134,7 @@ class ItineraryResource extends Resource
 
                     // generate base docx with main data
                     $fileName = 'generated_document.docx';
+                    //$filePath = base_path('public_html/' . $fileName); 
                     $filePath = public_path($fileName);
                     (new DocumentService())->generate('Itinerary.docx', $data)->saveAs($fileName);
 
@@ -172,6 +173,7 @@ class ItineraryResource extends Resource
                     $templateProcessor->setComplexBlock('table_placeholder', $table);
 
                     $qfileName = 'final_document.docx';
+                    //$qfilePath = base_path('public_html/' . $qfileName);
                     $qfilePath = public_path($qfileName);
                     $templateProcessor->saveAs($qfilePath);
                     file_exists($filePath) && unlink($filePath);

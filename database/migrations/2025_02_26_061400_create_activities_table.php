@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('activities', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('details')->nullable();
+            $table->text('details')->nullable();
             $table->integer('activity_type_id')->unsigned()->onDelete('cascade');
             $table->timestamps();
         });

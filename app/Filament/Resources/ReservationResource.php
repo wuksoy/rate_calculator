@@ -131,6 +131,7 @@ class ReservationResource extends Resource
             'amount' => $baseAmount,
         ];
         // Calculate meal charges for extra occupants, if applicable
+        $extraAmount = 0;
         if ($extra > 0) {
             $mealDiscountType = $get('meal_discount_type');
             $extraMealRate = $mealDiscountType ? $meal?->base_rate * (1 - $mealDiscountRate) : $meal?->base_rate;
@@ -541,6 +542,7 @@ class ReservationResource extends Resource
                                     ->action(function (Get $get) {
                                         $data = self::generate($get);
                                         $fileName = 'generated_document.xlsx';
+                                        //$filePath = base_path('public_html/' . $fileName); 
                                         $filePath = public_path($fileName);
                                         
                                         (new SheetsService())
@@ -563,6 +565,7 @@ class ReservationResource extends Resource
 
                                     // generate base docx with main data
                                     $fileName = 'generated_document.docx';
+                                    //$filePath = base_path('public_html/' . $fileName); 
                                     $filePath = public_path($fileName);
                                     (new DocumentService())->generate('Itinerary.docx', $data)->saveAs($fileName);
 
@@ -632,6 +635,7 @@ class ReservationResource extends Resource
                                     $templateProcessor->setComplexBlock('table_placeholder', $table);
 
                                     $qfileName = 'final_document.docx';
+                                    //$qfilePath = base_path('public_html/' . $qfileName); 
                                     $qfilePath = public_path($qfileName);
                                     $templateProcessor->saveAs($qfilePath);
                                     file_exists($filePath) && unlink($filePath);
