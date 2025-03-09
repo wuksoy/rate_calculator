@@ -158,12 +158,15 @@ class ReservationResource extends Resource
         $childSeaplane = 150;
         $seaplaneDiscount = (float) $get('seaplane_discount') ?? 0;
         $seaplaneDiscountType = $get('seaplane_discount_type');
+        $adultSeaplanePrice = $adults*$adultSeaplane*(1-$seaplaneDiscount/100);
+        $extraSeaplanePrice = $extra * $seaplaneDiscountType? $adultSeaplane*(1-$seaplaneDiscount/100):$extra * $adultSeaplane;
+        $childSeaplanePrice = $children * $seaplaneDiscountType? $childSeaplane*(1-$seaplaneDiscount/100):$children * $childSeaplane;
         // adult seaplane
         $data['seaplane'][]=[
             'pax' => $baseOccupants,
             'details' => 'Return shared seaplane transfer - '. $baseOccupants .' Adult '.($seaplaneDiscount > 0 ? '( ' . $seaplaneDiscount . '% Discount )' : ''),
             'rate' => $adultSeaplane*(1-$seaplaneDiscount/100),
-            'amount' => $adults*$adultSeaplane*(1-$seaplaneDiscount/100),
+            'amount' => $adultSeaplanePrice,
         ];
         //extra seaplane
         if($extra>0){
@@ -171,7 +174,7 @@ class ReservationResource extends Resource
                 'pax' => $extra,
                 'details' => 'Return shared seaplane transfer - '. $extra .' Extra Adult '.($seaplaneDiscount > 0 && $seaplaneDiscountType==true? '( ' . $seaplaneDiscount . '% Discount )' : ''),
                 'rate' => $seaplaneDiscountType? $adultSeaplane*(1-$seaplaneDiscount/100):$adultSeaplane,
-                'amount' => $extra * $seaplaneDiscountType? $adultSeaplane*(1-$seaplaneDiscount/100):$extra * $adultSeaplane,
+                'amount' => $extraSeaplanePrice,
             ];
         }
         //child seaplane
@@ -180,31 +183,32 @@ class ReservationResource extends Resource
                 'pax' => $adults,
                 'details' => 'Return shared seaplane transfer - '. $children .' Children ' .($seaplaneDiscount > 0 && $seaplaneDiscountType==true? '( ' . $seaplaneDiscount . '% Discount )' : ''),
                 'rate' => $children * $seaplaneDiscountType? $childSeaplane*(1-$seaplaneDiscount/100):$children * $childSeaplane,
-                'amount' => $children * $seaplaneDiscountType? $childSeaplane*(1-$seaplaneDiscount/100):$children * $childSeaplane,
+                'amount' => $childSeaplanePrice,
             ];
         }
 
         //calculate the tax charges
+        $finalTotal = $baseAmount + $extraAmount + $adultSeaplanePrice + $extraSeaplanePrice + $childSeaplanePrice;
         //service charge
         $data['tax'][]=[
-            'pax' => $children,
+            'pax' => 1,
             'details' => '10% Service Charge ',
-            'rate' => 6,
-            'amount' => 1,
+            'rate' => '10%',
+            'amount' => 0.1*$finalTotal,
         ];
         // gst
         $data['tax'][]=[
-            'pax' => $adults,
+            'pax' => 1,
             'details' => '16% GST Tax ',
-            'rate' => 1,
-            'amount' =>1,
+            'rate' => '16%',
+            'amount' =>0.16*(0.1*$finalTotal),
         ];
         //green tax for children only
         $greenTax = 6 * $children * $nights;
         if($children > 0){
             $data['tax'][]=[
                 'pax' => $children,
-                'details' => 'Green Tax per person per day - '. $children .' Children ',
+                'details' => 'Green Tax per person per night - '. $children .' Children ',
                 'rate' => 6,
                 'amount' => $greenTax,
             ];
@@ -222,12 +226,10 @@ class ReservationResource extends Resource
         $numChildren = (int) $get('children') ?? 0;
         $daysInAdvance = floor(now()->diffInDays($checkInDate ?? now()));
         $roomDiscount = (float) $get('room_discount') ?? 0;
-        $roomDiscountType = $get('room_discount_type');
         $mealDiscount = (float) $get('meal_discount') ?? 0;
         $mealDiscountType = $get('meal_discount_type');
         $seaplaneDiscount = (float) $get('seaplane_discount') ?? 0;
         $seaplaneDiscountType = $get('seaplane_discount_type');
-        $advanceDiscountEnabled = (bool) $get('adavance_discount');
         $extraChargePerNight = 300;
         $seaplaneChargeAdult = 700;
         $seaplaneChargeChild = 350;

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ItineraryResource\Pages;
 use App\Filament\Resources\ItineraryResource\RelationManagers;
+use App\Models\Activity;
 use App\Models\Itinerary;
 use App\Models\Meal;
 use Filament\Forms;
@@ -11,12 +12,14 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Support\Enums\Alignment;
 
 class ItineraryResource extends Resource
 {
@@ -41,15 +44,32 @@ class ItineraryResource extends Resource
                     ->columnSpan(6),
                 DatePicker::make('checkout')
                     ->columnSpan(6),
-                Repeater::make('Itinerary')->schema([
+                Repeater::make('activities')->schema([
                     DatePicker::make('date')->columnSpan(4),
                     Repeater::make('activities')->schema([
-                        TextInput::make('main')->columnSpan(12),
-                        TextInput::make('sub')->columnSpan(12),
+                        TimePicker::make('time_start')
+                        ->label('Start time')
+                        ->seconds(false)
+                        ->minutesStep(60)
+                        ->columnSpan(2),
+                        TimePicker::make('time_end')
+                        ->label('End time')
+                        ->seconds(false)
+                        ->minutesStep(60)
+                        ->columnSpan(2),
+                        Select::make('activity')
+                        ->options(Activity::all()->pluck('name','id'))
+                        ->searchable()
+                        ->columnSpan(8),
                     ])
+                    ->addActionAlignment(Alignment::Start)
+                    ->addActionLabel('Add Activity')
                     ->columns(12)
                     ->columnSpan(8)
                     ])
+                ->label('Itinerary')
+                ->addActionAlignment(Alignment::Start)
+                ->addActionLabel('Add Date')
                 ->columns(12)
                 ->columnSpan(12)
                   
